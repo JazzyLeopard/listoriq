@@ -3,17 +3,20 @@ import Link from "next/link";
 
 interface WriteProjectInfoProps {
   setProjectOverViewStep: React.Dispatch<React.SetStateAction<number>>;
+  project: any;
 }
 
-const ProjectOverviewAndEpics:React.FC<WriteProjectInfoProps>  = ({setProjectOverViewStep}) => {
+const ProjectOverviewAndEpics:React.FC<WriteProjectInfoProps>  = ({setProjectOverViewStep, project}) => {
 
   const handleStep = () => {
     setProjectOverViewStep(2)
   }
+  console.log(project)
   return (
     <div className="grid gap-4">
       <h1 className="text-slate-900 text-5xl font-semibold leading-[48px] mt-10">
         Project1
+
       </h1>
 
       <div className="grid">

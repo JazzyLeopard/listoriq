@@ -34,8 +34,8 @@ export const Navigation = () => {
 	const onCreate = () => {
 		const mypromise = createProject({
 			title: "Untitled Project",
-			description: "dummey description",
-			objectives: "dummy Objective",
+			// description: "dummey description",
+			// objectives: "dummy Objective",
 		});
 
 		toast.promise(mypromise, {
@@ -71,7 +71,7 @@ export const Navigation = () => {
 	
 
 	const projects = useQuery(api.projects.getProjects);
-	console.log(projects?.map(it => it._id));
+	// console.log(projects?.map(it => it._id));
 	
 
 	// true if the query matches, false otherwise
