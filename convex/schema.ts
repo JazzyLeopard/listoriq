@@ -4,18 +4,16 @@ import { v } from "convex/values";
 export default defineSchema({
   projects: defineTable({
     userId: v.string(),
-    title: v.string(),
-    description: v.string(),
-    objectives: v.string(),
     onboarding: v.number(),
-    stakeholders: v.optional(v.string()),
-    scope: v.optional(v.string()),
-    targetAudience: v.optional(v.string()),
-    constraints: v.optional(v.string()),
-    budget: v.optional(v.string()),
-    dependencies: v.optional(v.string()),
-    priorities: v.optional(v.string()),
-    risks: v.optional(v.string()),
+    title: v.string(),
+    overview: v.string(),
+    problemStatement: v.string(),
+    userPersonas: v.optional(v.string()),
+    featuresInOut: v.optional(v.string()),
+    successMetrics: v.optional(v.string()),
+    userScenarios: v.optional(v.string()),
+    featurePrioritization: v.optional(v.string()),
+    risksDependencies: v.optional(v.string()),
     isArchived: v.boolean(),
     isPublished: v.optional(v.boolean()),
     createdAt: v.int64(), // Storing timestamp as bigint (milliseconds since Unix epoch)
@@ -24,19 +22,29 @@ export default defineSchema({
     .index("by_userId", ["userId"]) // Index to query projects by userId
     .index("by_createdAt", ["createdAt"]), // Index to query projects by creation time
 
+  useCases: defineTable({
+    projectId: v.id("projects"),
+    title: v.string(),
+    description: v.string(), // This will contain all sub-requirements
+    createdAt: v.int64(),
+    updatedAt: v.int64(),
+  }).index("by_projectId", ["projectId"]),
+  // Index to query projects by creation time,
+
+  functionalRequirements: defineTable({
+    projectId: v.id("projects"),
+    content: v.string(),
+    createdAt: v.int64(),
+    updatedAt: v.int64(),
+  }).index("by_projectId", ["projectId"])
+    .index("by_createdAt", ["createdAt"]), // Index to query functional requirements by creation time
+
   epics: defineTable({
     projectId: v.id("projects"),
     name: v.string(),
     description: v.string(),
-    status: v.string(), // e.g., 'Not Started', 'In Progress', 'Completed'
     createdAt: v.int64(), // Storing timestamp as bigint
     updatedAt: v.int64(), // Storing timestamp as bigint
-    startDate: v.optional(v.int64()), // Storing timestamp as bigint
-    endDate: v.optional(v.int64()), // Storing timestamp as bigint
-    owner: v.optional(v.string()),
-    priority: v.optional(v.string()), // e.g., 'Low', 'Medium', 'High'
-    labels: v.optional(v.array(v.string())),
-    dependencies: v.optional(v.array(v.id("epics"))), // Array of epic or user story IDs
   })
     .index("by_projectId", ["projectId"]) // Index to query epics by projectId
     .index("by_createdAt", ["createdAt"]), // Index to query epics by creation time
@@ -45,15 +53,21 @@ export default defineSchema({
     epicId: v.id("epics"),
     title: v.string(),
     description: v.string(),
-    acceptanceCriteria: v.optional(v.string()), // Optional field
-    interfaceElements: v.optional(v.string()), // Optional field
-    inScope: v.optional(v.string()), // Optional field
-    outOfScope: v.optional(v.string()), // Optional field
-    accessibilityInfo: v.optional(v.string()), // Optional field
-    functionalFlow: v.optional(v.string()), // Optional field
     createdAt: v.int64(), // Storing timestamp as bigint
     updatedAt: v.int64(), // Storing timestamp as bigint
   })
     .index("by_epicId", ["epicId"]) // Index to query user stories by epicId
     .index("by_createdAt", ["createdAt"]), // Index to query user stories by creation time
+
+  documents: defineTable({
+    projectId: v.id("projects"), // Associate the document with a project
+    storageId: v.id("_storage"),
+    filename: v.string(), // Store the file name
+    summarizedContent: v.string(), // Store the summarized content
+    createdAt: v.int64(), // Storing timestamp as bigint
+    updatedAt: v.int64(), // Storing timestamp as bigint
+  })
+    .index("by_projectId", ["projectId"]) // Index to query documents by projectId  
+    .index("by_createdAt", ["createdAt"]), // Index to query epics by creation time
 });
+

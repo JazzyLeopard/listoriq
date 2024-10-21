@@ -5,132 +5,188 @@
  */
 "use client"
 
-import RoundCheckmark from "@/icons/RoundCheckmark";
-import BoldRoundCheckmark from "@/icons/BoldRoundCheckmark";
-import { toTitleCase } from "@/utils/helper";
-import LabelToInput from "../LabelToInput";
-
 import '@/app/custom.css';
-
-
-import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogDescription,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { DialogClose } from "@radix-ui/react-dialog";
-import FieldList from "./FieldList";
-import { MenuItemType } from "@/lib/types";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { api } from '@/convex/_generated/api';
+import AiGenerationIconWhite from "@/icons/AI-Generation-White";
+import type { MenuItemType, Project } from "@/lib/types";
+import { useQuery } from 'convex/react';
+import { Presentation, Rocket, X } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import LabelToInput from "../LabelToInput";
+import PresentationMode from '../PresentationMode';
 import EditorList from "./EditorList";
+import FieldList from "./FieldList";
 
 interface CommonLayoutProps {
-    data: any;
+    data: Project;
     menu: MenuItemType[];
     onEditorBlur: () => Promise<void>;
-    updateLabel: (val: string) => void;
-    handleEditorChange: (attribute: string, value: any) => void
+    handleEditorChange: (attribute: string, value: any) => void,
+    showTitle?: boolean;
+    mandatoryFields?: string[];
 }
 
-const CommonLayout = ({ data, menu, onEditorBlur, updateLabel, handleEditorChange }: CommonLayoutProps) => {
+const CommonLayout = ({
+    data,
+    menu,
+    onEditorBlur,
+    handleEditorChange,
+    showTitle = true,
+    mandatoryFields = ["overview", "problemStatement", "userPersonas", "featuresInOut"]
+}: CommonLayoutProps) => {
 
-    const [components, setComponents] = useState<MenuItemType[]>(() => {
-        return menu.map(item => ({
-            ...item,
-            active: ['description', 'objectives', 'requirements', 'stakeholders'].includes(item.key.toLowerCase()),
-            data: ''
-        }));
-    });
-
-    const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
-
-    // Toggle modal visibility
-    const toggleModal = () => {
-        setIsModalOpen(!isModalOpen);
-    };
+    const [activeSection, setActiveSection] = useState<string>('');
+    const [isPresentationMode, setIsPresentationMode] = useState(false);
+    const [isBrainstormChatOpen, setIsBrainstormChatOpen] = useState(false);
+    const [showAlert, setShowAlert] = useState(false);
+    const [isGenerateButtonActive, setIsGenerateButtonActive] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [isFrGenerated, setIsFrGenerated] = useState(false)
+    const router = useRouter();
 
     useEffect(() => {
-        if (data) {
-            setComponents(prevComponents => prevComponents.map(component => {
-                if (data[component.key] && data[component.key].length > 0) {
-                    return { ...component, active: true, required: true };
-                }
-                return component;
-            }));
+        if (!activeSection && menu.length > 0) {
+            setActiveSection(menu[0].key);
         }
+    }, [menu, activeSection]);
+
+    useEffect(() => {
+        // Check if all required fields have content
+        const requiredFields = ["overview", "problemStatement", "userPersonas", "featuresInOut"];
+        const allFieldsHaveContent = requiredFields.every(field => {
+            const value = data[field];
+            return value && typeof value === 'string' && value.trim() !== '';
+        });
+        setIsGenerateButtonActive(allFieldsHaveContent);
     }, [data]);
 
-    const handleItemClick = (index: number) => {
-        const newComponents = components.map((component, i) => {
-            if (i === index) {
-                return { ...component, active: !component.active };
-            }
-            return component;
-        });
-        setComponents(newComponents);
+    // Check if the functional requirements are already generated
+    const checkFunctionalRequirements = useQuery(api.functionalRequirements.getFunctionalRequirementsByProjectId, { projectId: data._id });
+
+    useEffect(() => {
+        if (checkFunctionalRequirements && checkFunctionalRequirements?.content) {
+            setIsFrGenerated(true); // Disable button if already generated
+        }
+    }, [checkFunctionalRequirements]);
+
+    const togglePresentationMode = () => {
+        setIsPresentationMode(!isPresentationMode);
     };
 
-    return (
-        <div className="flex h-screen w-full px-0 mt-0">
-            <main className="flex-1 w-full pr-8 pl-8 pt-8 overflow-auto">
-                <div className="bg-white sticky top-0 z-10 flex items-center justify-between pt-8 pb-8 justify-items-center gap-4">
-                    <LabelToInput
-                        value={data.title}
-                        setValue={updateLabel}
-                        onBlur={onEditorBlur} />
-                    <div className="flex gap-4">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="outline">Project Elements</Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-[800px] max-h-[85vh] overflow-y-auto">
-                                <DialogHeader>
-                                    <DialogTitle>Select Additional Project Elements</DialogTitle>
-                                </DialogHeader>
-                                <DialogDescription></DialogDescription>
-                                <ul className="grid gap-3 p-4">
-                                    {components.map((component, index) => {
-                                        return (
-                                            <li key={toTitleCase(component.key)}
-                                                className={`flex justify-center items-center p-4 gap-4 ${component.active ? "border border-black" : "border"} p-2 rounded cursor-pointer select-none`}
-                                                onClick={() => !component.required && handleItemClick(index)}>
-                                                <div>{component.icon}</div>
-                                                <div>
-                                                    <p className="text-sm font-bold">{toTitleCase(component.key)}</p>
-                                                    <p className="text-sm">{component.description}</p>
-                                                </div>
-                                                <div>
-                                                    {component.active ? (
-                                                        <BoldRoundCheckmark />
-                                                    ) : (
-                                                        <RoundCheckmark />
-                                                    )}
-                                                </div>
-                                            </li>
-                                        )
-                                    })}
-                                </ul>
-                                <DialogFooter>
-                                    <DialogClose asChild>
-                                        <Button>Close</Button>
-                                    </DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        <Button>Generate Epics</Button>
-                    </div>
-                </div>
+    if (isPresentationMode) {
+        return <PresentationMode data={data} onClose={() => setIsPresentationMode(false)} />;
+    }
 
-                <div className="flex items-start space-x-8">
-                    <FieldList components={components} />
-                    <EditorList components={components} data={data} onEditorBlur={onEditorBlur} handleEditorChange={handleEditorChange} />
+    // console.log("Current data in CommonLayout:", data);
+
+    const handleGenerateFR = () => {
+        setIsConfirmModalOpen(true);
+    };
+
+    const confirmGenerateFR = async () => {
+        setIsConfirmModalOpen(false);
+
+        try {
+            // Navigate to the Functional Requirements page and trigger generation\
+            await router.push(`/projects/${data._id}/functional-requirements?generate=true`);
+        }
+        catch (error) {
+            console.log("Error routing", error)
+        }
+    };
+    // console.log("Current data in CommonLayout:", data);
+
+    return (
+        <div className="h-screen flex flex-col z-top">
+            {showAlert && (
+                <Alert className="mt-16 ml-8 mr-8 bg-primary/5 w-4/4 text-primary relative">
+                    <Rocket className="h-5 w-5" />
+                    <AlertTitle className="text-md">Welcome!</AlertTitle>
+                    <AlertDescription>
+                        This is your PRD, your product/project requirements document. This is where all of the business information related to your product or project lives.<br />
+                        This tool uses the information you specify here to help you create all the necessary parts of your analysis to have development-ready user stories.
+                    </AlertDescription>
+                    <Button
+                        className="absolute top-2 right-2 p-1"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowAlert(false)}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </Alert>
+            )}
+
+            <div className="bg-white sticky z-999 flex items-center justify-between px-8 pt-8 pb-2">
+                {showTitle && (
+                    <div className="flex-1 mr-4">
+                        <LabelToInput
+                            value={data?.title}
+                            setValue={(val) => handleEditorChange('title', val)}
+                            onBlur={onEditorBlur}
+                        />
+                    </div>
+                )}
+
+                <div className="flex items-center gap-4 ml-auto">
+                    <Button
+                        className="gap-2"
+                        onClick={handleGenerateFR}
+                        disabled={!isGenerateButtonActive || isFrGenerated}
+                    >
+                        <AiGenerationIconWhite />
+                        {isFrGenerated ? "Functional Requirements Generated" : "Generate Functional Requirements"}
+                    </Button>
+                    <Button
+                        className="bg-white text-black border border-gray-300 hover:bg-gray-200"
+                        onClick={togglePresentationMode}
+                    >
+                        <Presentation className="pr-2" />
+                        Presentation Mode
+                    </Button>
                 </div>
-            </main>
+            </div>
+
+            <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="pb-2">Generate Functional Requirements</DialogTitle>
+                        <DialogDescription className="pb-2">
+                            Are you confident that you've provided enough information about the project to generate comprehensive Functional Requirements?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsConfirmModalOpen(false)}>Cancel</Button>
+                        <Button onClick={confirmGenerateFR}>
+                            Confirm
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <div className="overflow-hidden grid grid-cols-[250px,1fr] gap-8 px-8 pt-10 laptop-1024:overflow-auto">
+                <div className="align-top">
+                    <FieldList
+                        components={menu}
+                        activeSection={activeSection}
+                        setActiveSection={setActiveSection}
+                        mandatoryFields={mandatoryFields}
+                        projectId={data._id}
+                    />
+                </div>
+                <div className="overflow-hidden">
+                    <EditorList
+                        components={menu.filter(c => c.key === activeSection)}
+                        data={data}
+                        handleEditorChange={handleEditorChange}
+                        onEditorBlur={onEditorBlur}
+                        onOpenBrainstormChat={async () => { }} />
+                </div>
+            </div>
         </div>
     );
 };

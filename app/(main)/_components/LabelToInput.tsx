@@ -1,6 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { input } from "@nextui-org/react";
+import { Edit } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function LabelToInput({
   value,
@@ -12,50 +14,56 @@ export default function LabelToInput({
   onBlur: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  // const [value, setValue] = useState('');
+  const [inputValue, setInputValue] = useState(value);
 
   const handleClick = () => {
     setIsEditing(true);
   };
 
-  const updateValue = (val: string) => {
-    setValue(val);
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(event.target.value)
   };
 
   const handleBlur = () => {
     setIsEditing(false);
+    setValue(inputValue)
     onBlur();
   };
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(event.target.value);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setIsEditing(false);
+      setValue(inputValue)
+      onBlur();
+    }
   };
 
   return (
     <div className="flex items-center w-full">
       {isEditing ? (
         <Input
-          value={value}
+          value={inputValue}
           onChange={handleChange}
           onBlur={handleBlur}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault(); // Prevent the default action to avoid form submission
-              setValue(value); // Directly update the state with the current value
-              setIsEditing(false); // Set editing to false to close the input field
-              onBlur(); // Call onBlur to handle any additional blur effects
-              console.log("Input updated:", value); // Log the updated value
-            }
-          }}
+          onKeyDown={handleKeyDown}
           className="border-gray-300 rounded-md px-3 py-2 text-2xl font-semibold"
+          autoFocus
         />
       ) : (
-        <Label
+        <div
           onClick={handleClick}
-          className="cursor-pointer text-gray-700 hover:text-gray-900 text-2xl font-semibold"
+          className="flex items-center cursor-pointer group"
         >
-          {value || "Click to edit"}
-        </Label>
+          <Label
+            className="text-gray-700 group-hover:text-gray-900 text-2xl font-semibold mr-2"
+          >
+            {value || "Click to edit"}
+          </Label>
+          <Edit
+            className="h-5 w-5 text-gray-300 group-hover:text-gray-600 transition-colors duration-200"
+          />
+        </div>
       )}
     </div>
   );

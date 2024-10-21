@@ -1,34 +1,96 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import AiGenerationIconWhite from "@/icons/AI-Generation-White";
 import Draggable from "react-draggable";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@clerk/nextjs";
 
 interface AiPromptbarProps {
   onClose: () => void;
+  attribute: string;
+  data: any;
+  onAIResponse: any;
 }
 
-export default function AiPromptBar({ onClose }: AiPromptbarProps) {
+export default function AiPromptBar({ onClose, attribute, data, onAIResponse }: AiPromptbarProps) {
+
+  const { getToken } = useAuth();
+
+  const [inputValue, setInputValue] = useState("");
+
+  const draggableRef = useRef<HTMLDivElement>(null)
+
   const [showHistory, setShowHistory] = useState(false);
   const previousPrompts = ["Prompt 1", "Prompt 2", "Prompt 3"]; // Example previous prompts
 
+  // Handle the click event for the generate button
+  const handleGenerateClick = async () => {
+    if (!inputValue.trim()) {
+      alert("Please enter a prompt.");
+      return;
+    }
+
+    try {
+      const token = await getToken({ template: "convex" });
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: attribute, // Pass the attribute as type
+          data: data, // Pass the relevant data
+          instructions: inputValue.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        console.log('AI Response:', result.response);
+        onAIResponse(result.response); // Call the function to update project details
+      } else {
+        console.error('Error:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching AI response:', error);
+    }
+
+    onClose(); // Close the prompt after generating
+  };
+
+
   return (
-    <Draggable cancel=".no-drag">
-      <div className="flex flex-col items-center min-h-[3rem] max-w-lg p-2 bg-gray-900 text-white rounded-lg">
+    <Draggable cancel=".no-drag" nodeRef={draggableRef}>
+      <div ref={draggableRef} className="flex flex-col items-center min-h-[3rem] max-w-lg p-2 bg-gray-900 text-white rounded-lg">
         <div className="flex items-center w-full">
           <div className="flex items-center justify-center p-2">
             <AiGenerationIconWhite />
           </div>
           <Textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             placeholder="What do you want to make happen?"
             className="flex-1 mx-2 bg-transparent text-sm h-4 border border-gray-100 rounded-md outline-none text-white no-drag" // Increased height and added no-drag class
+            aria-label="Prompt Input"
           />
-          <button className="flex items-center justify-center w-6 h-6">
+          <button
+            onClick={handleGenerateClick}
+            className="flex items-center justify-center w-6 h-6"
+            aria-label="Generate AI Content"
+          >
             <ArrowRightIcon className="w-4 h-4 text-white" />
           </button>
-          <button onClick={onClose} className="flex items-center justify-center w-6 h-6 ml-2">
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-6 h-6 ml-2"
+            aria-label="Close Prompt">
             <XIcon className="w-4 h-4 text-white" />
           </button>
-          <button onClick={() => setShowHistory(!showHistory)} className="flex items-center justify-center w-6 h-6 ml-2">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center justify-center w-6 h-6 ml-2"
+            aria-label="Toggle History">
             <HistoryIcon className="w-4 h-4 text-white" />
           </button>
         </div>
@@ -45,7 +107,7 @@ export default function AiPromptBar({ onClose }: AiPromptbarProps) {
           </div>
         )}
       </div>
-    </Draggable>
+    </Draggable >
   );
 }
 

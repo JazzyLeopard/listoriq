@@ -1,12 +1,12 @@
 "use client";
-import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import CommonLayout from "@/app/(main)/_components/layout/CommonLayout";
+import Spinner from "@/components/ui/spinner";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import Spinner from "@/components/ui/spinner";
-import { useRouter } from "next/navigation";
-import CommonLayout from "@/app/(main)/_components/layout/CommonLayout";
+import { useMutation, useQuery } from "convex/react";
 import { menuItems } from "@/app/(main)/_components/constants";
-import { useEffect, useState } from "react";
+import { serialize } from 'next-mdx-remote/serialize';
 
 interface ProjectIdPageProps {
   params: {
@@ -17,7 +17,6 @@ interface ProjectIdPageProps {
 const ProjectIdPage = ({ params }: ProjectIdPageProps) => {
   const id = params.projectId;
 
-  const router = useRouter();
   const [projectDetails, setProjectDetails] = useState<any>()
 
   const updateProjectMutation = useMutation(api.projects.updateProject)
@@ -27,27 +26,26 @@ const ProjectIdPage = ({ params }: ProjectIdPageProps) => {
   });
 
   useEffect(() => {
-    if (project && project?.onboarding != 0) {
-      router.push(`/projects/${project?._id}/onboarding`)
-    }
-    else {
+    if (project && project?._id) {
       setProjectDetails(project)
     }
   }, [project])
 
   if (projectDetails === undefined) {
-    return <div className="flex justify-center items-center mx-auto"><Spinner /></div>;
+    return <div className="flex justify-center items-center mx-auto"><Spinner size={"lg"} /></div>;
   }
 
-  const updateLabel = (val: string) => {
-    setProjectDetails({ ...projectDetails, title: val });
-  };
 
   const handleEditorBlur = async () => {
     try {
-      console.log('time for API call', projectDetails);
-      const { _creationTime, createdAt, updatedAt, userId, ...payload } = projectDetails
-      await updateProjectMutation(payload)
+      setProjectDetails((prevDetails: any) => {
+        console.log('time for API call', prevDetails);
+        const { _creationTime, createdAt, updatedAt, userId, ...payload } = prevDetails;
+        updateProjectMutation(payload).catch(error => {
+          console.log('error updating project', error);
+        });
+        return prevDetails;  // Return the same state to avoid unnecessary re-renders
+      });
     } catch (error) {
       console.log('error updating project', error);
     }
@@ -57,16 +55,12 @@ const ProjectIdPage = ({ params }: ProjectIdPageProps) => {
     setProjectDetails({ ...projectDetails, [attribute]: data });
   };
 
-  if (projectDetails?.onboarding == 0) {
-    return <CommonLayout
-      data={project}
-      menu={menuItems}
-      onEditorBlur={handleEditorBlur}
-      updateLabel={updateLabel}
-      handleEditorChange={handleEditorChange} />
-  }
 
-  return <>Redirecting...</>
+  return <CommonLayout
+    data={projectDetails}
+    menu={menuItems}
+    onEditorBlur={handleEditorBlur}
+    handleEditorChange={handleEditorChange} />
 };
 
 export default ProjectIdPage;

@@ -2,10 +2,10 @@
 
 import Spinner from "@/components/ui/spinner";
 import { useUser } from "@clerk/clerk-react";
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { redirect } from "next/navigation";
-import React from "react";
 import { Navigation } from "./_components/navigation";
+import { api } from "@/convex/_generated/api";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const { isLoading } = useConvexAuth();

@@ -9,7 +9,6 @@ import RisksIcon from "@/icons/RisksIcon";
 import { toTitleCase } from "@/utils/helper";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import ScopeIcon from "@/icons/ScopeIcon";
 import DollarIcon from "@/icons/DollarIcon";
 import PrioritiesIcon from "@/icons/PrioritiesIcon";
 import DependenciesIcon from "@/icons/DependenciesIcon";
@@ -19,6 +18,7 @@ import listIcon from "@iconify/icons-ic/outline-list";
 import "@/app/custom.css";
 import AiGenerationIcon from "@/icons/AI-Generation";
 import BlockEditor from "./BlockEditor";
+import { Presentation } from "lucide-react";
 
 
 import React, { useEffect, useState } from "react";
@@ -96,14 +96,6 @@ const menuItems: MenuItemType[] = [
     description:
       "Add regular paragraphs to convey your main content. This will enhance the scope of your project.",
     active: true,
-    required: false,
-  },
-  {
-    key: "scope",
-    icon: <ScopeIcon />,
-    description:
-      "Add regular paragraphs to convey your main content. This will enhance the scope of your project.",
-    active: false,
     required: false,
   },
   {
@@ -229,6 +221,11 @@ const ProjectLayout = ({ project }: { project: any }) => {
     return () => clearInterval(interval);
   }, [projectDetails]);
 
+  const handleOpenBrainstormChat = () => {
+    // Implement the logic for opening brainstorm chat
+    console.log("Opening brainstorm chat");
+  };
+
   return (
     <div className="flex h-screen w-full">
       <main className="flex-1 w-full pr-8 pl-8 pt-8 overflow-hidden">
@@ -285,6 +282,10 @@ const ProjectLayout = ({ project }: { project: any }) => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            <Button variant="outline">
+                  <Presentation />
+                  Presentation Mode
+                </Button>
             <Button className="flex items-center gap-2">
               <AiGenerationIconWhite />
               Generate Epics
@@ -328,6 +329,8 @@ const ProjectLayout = ({ project }: { project: any }) => {
                         attribute={c.key}
                         projectDetails={projectDetails}
                         setProjectDetails={setProjectDetails}
+                        onOpenBrainstormChat={handleOpenBrainstormChat}
+                        context="project"
                       />
                     </div>
                   </div>

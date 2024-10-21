@@ -1,7 +1,6 @@
 import { mutation, query } from "@/convex/_generated/server";
 import { v } from "convex/values";
-import { Project } from "next/dist/build/swc";
-
+import { placeholders } from "../app/(main)/_components/constants";
 
 export const getSidebar = query(async (ctx) => {
 
@@ -47,6 +46,7 @@ export const getSidebar = query(async (ctx) => {
         _id: project._id,
         title: project.title,
         type: 'project',
+        onboarding: project.onboarding,
         epics: epicsWithUserStories,
       };
     })
@@ -160,6 +160,7 @@ export const getProjectNameById = query({
 export const createProject = mutation({
   args: {
     title: v.string(),
+    overview: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -173,13 +174,15 @@ export const createProject = mutation({
     const project = await ctx.db.insert("projects", {
       title: args.title,
       userId: identity.subject,
-      description: "",
-      objectives: "",
+      overview: args.overview || "",
+      problemStatement: "",
+      featurePrioritization: "",
+      featuresInOut: "",
       isArchived: false,
       isPublished: false,
       onboarding: 1,
-      createdAt: BigInt(Date.now()), // Use BigInt for timestamps
-      updatedAt: BigInt(Date.now()), // Use BigInt for timestamps
+      createdAt: BigInt(Date.now()),
+      updatedAt: BigInt(Date.now()),
     });
 
     return project;
@@ -190,23 +193,50 @@ export const updateProject = mutation({
   args: {
     _id: v.id("projects"),
     title: v.optional(v.string()),
-    description: v.optional(v.string()),
-    objectives: v.optional(v.string()),
-    stakeholders: v.optional(v.string()),
-    scope: v.optional(v.string()),
-    targetAudience: v.optional(v.string()),
-    constraints: v.optional(v.string()),
-    budget: v.optional(v.string()),
-    dependencies: v.optional(v.string()),
-    priorities: v.optional(v.string()),
-    risks: v.optional(v.string()),
+    overview: v.optional(v.string()),
+    problemStatement: v.optional(v.string()),
+    userPersonas: v.optional(v.string()),
+    featuresInOut: v.optional(v.string()),
+    successMetrics: v.optional(v.string()),
+    userScenarios: v.optional(v.string()),
+    featurePrioritization: v.optional(v.string()),
+    risksDependencies: v.optional(v.string()),
     isArchived: v.optional(v.boolean()),
     isPublished: v.optional(v.boolean()),
+    onboarding: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { _id, ...updates } = args;
 
-    await ctx.db.patch(_id, { ...updates, updatedAt: BigInt(Date.now()) });
+    const currentProject = await ctx.db.get(_id);
+    if (!currentProject) throw new Error("Project not found");
+
+    const updatedProject = { ...currentProject, ...updates };
+
+    const mandatoryFields = ["overview", "problemStatement", "userPersonas", "featuresInOut"] as const;
+    let filledFields = mandatoryFields.filter(field =>
+      updatedProject[field] && typeof updatedProject[field] === 'string' && updatedProject[field].trim() !== ''
+    );
+
+    let onboarding = 1; // Start onboarding at 1
+
+    // Set onboarding based on the number of filled mandatory fields
+    if (filledFields.length > 0) {
+      onboarding = filledFields.length; // Set onboarding to the number of filled fields
+    }
+
+    // If all mandatory fields are filled, set onboarding to 0
+    if (filledFields.length === mandatoryFields.length) {
+      onboarding = 0;
+    }
+
+    const finalUpdates = { ...updates, onboarding };
+
+    await ctx.db.patch(_id, { ...finalUpdates, updatedAt: BigInt(Date.now()) });
+
+    const finalProject = await ctx.db.get(_id);
+
+    return finalProject;
   },
 });
 
